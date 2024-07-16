@@ -31,25 +31,6 @@ This project implements a web application for movie enthusiasts to rate and comm
 - **Password Hashing:** Bcrypt
 - **API Documentation:** Swagger UI and ReDoc
 
-## Project Structure
-├── app
-│ ├── api
-│ │ ├── auth.py # User authentication routes
-│ │ ├── movies.py # Movie CRUD operations
-│ │ └── comments.py # Comment CRUD operations
-│ ├── models.py # SQLAlchemy models (User, Movie, Rating, Comment)
-│ ├── schemas.py # Pydantic schemas for data validation
-│ ├── crud.py # CRUD operations for database interactions
-│ ├── database.py # Database connection and setup
-│ ├── main.py # FastAPI application setup
-│ ├── auth.py # JWT token creation and authentication
-│ ├── utils.py # Utility functions
-│ └── .env # Environment variables (not included in repository)
-├── migrations # Database migrations (Alembic)
-├── tests # Unit tests
-├── requirements.txt # Python dependencies
-└── README.md # Project overview and setup instructions
-
 ## Getting Started
 
 ### Prerequisites
