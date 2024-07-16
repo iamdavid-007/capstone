@@ -1,0 +1,183 @@
+from sqlalchemy.orm import Session
+from . import models, schemas
+
+def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):
+    db_user = models.User(
+        username=user.username, 
+        email=user.email,
+        hashed_password=hashed_password
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
+
+def get_user(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+def create_movie(db: Session, movie: schemas.MovieCreate, user_id: int):
+    db_movie = models.Movie(**movie.dict(), owner_id=user_id)
+    db.add(db_movie)
+    db.commit()
+    db.refresh(db_movie)
+    return db_movie
+
+def get_movie(db: Session, movie_id: int):
+    return db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+
+def get_movies(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(models.Movie).offset(skip).limit(limit).all()
+
+def update_movie(db: Session, movie_id: int, movie_payload: schemas.MovieUpdate, user_id: int):
+    movie = get_movie(db, movie_id)
+    if not movie or movie.owner_id != user_id:
+        return None
+    
+    movie_payload_dict = movie_payload.dict(exclude_unset=True)
+    for k, v in movie_payload_dict.items():
+        setattr(movie, k, v)
+
+    db.commit()
+    db.refresh(movie)
+    return movie
+
+def delete_movie(db: Session, movie_id: int, user_id: int):
+    movie = get_movie(db, movie_id)
+    if movie and movie.owner_id == user_id:
+        db.delete(movie)
+        db.commit()
+        return movie
+    return None
+
+def create_rating(db: Session, rating: schemas.RatingCreate):
+    db_rating = models.Rating(**rating.dict())
+    db.add(db_rating)
+    db.commit()
+    db.refresh(db_rating)
+    return db_rating
+
+def get_ratings_for_movie(db: Session, movie_id: int):
+    return db.query(models.Rating).filter(models.Rating.movie_id == movie_id).all()
+
+def create_comment(db: Session, comment: schemas.CommentCreate):
+    db_comment = models.Comment(**comment.dict())
+    db.add(db_comment)
+    db.commit()
+    db.refresh(db_comment)
+    return db_comment
+
+def get_comments_for_movie(db: Session, movie_id: int):
+    return db.query(models.Comment).filter(models.Comment.movie_id == movie_id).all()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+from typing import List
+from datetime import timedelta
+from . import models, schemas, crud, auth, database
+
+app = FastAPI()
+
+oauth2_scheme = auth.oauth2_scheme
+
+# Database Dependency
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/token", response_model=schemas.Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = auth.authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+================
+
+@app.post("/signup", response_model=schema.User)
+def signup(user: schema.UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_username(db, username=user.username)
+    hashed_password = pwd_context.hash(user.password)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    return crud.create_user(db=db, user=user, hashed_password=hashed_password)
+
+================
+@app.post("/users/", response_model=schemas.User)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    hashed_password = auth.get_password_hash(user.password)
+    return crud.create_user(db, user, hashed_password)
+
+@app.get("/users/me", response_model=schemas.User)
+def read_users_me(current_user: schemas.User = Depends(auth.get_current_user)):
+    return current_user
+
+@app.post("/movies/", response_model=schemas.Movie)
+def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return crud.create_movie(db, movie, current_user.id)
+
+@app.get("/movies/", response_model=List[schemas.Movie])
+def read_movies(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return crud.get_movies(db, skip=skip, limit=limit)
+
+@app.put("/movies/{movie_id}", response_model=schemas.Movie)
+def update_movie(movie_id: int, movie: schemas.MovieUpdate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    updated_movie = crud.update_movie(db, movie_id, movie, current_user.id)
+    if not updated_movie:
+        raise HTTPException(status_code=404, detail="Movie not found or not authorized")
+    return updated_movie
+
+@app.delete("/movies/{movie_id}", response_model=schemas.Movie)
+def delete_movie(movie_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    deleted_movie = crud.delete_movie(db, movie_id, current_user.id)
+    if not deleted_movie:
+        raise HTTPException(status_code=404, detail="Movie not found or not authorized")
+    return deleted_movie
+
+@app.post("/ratings/", response_model=schemas.Rating)
+def create_rating(rating: schemas.RatingCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return crud.create_rating(db, rating)
+
+@app.get("/movies/{movie_id}/ratings/", response_model=List[schemas.Rating])
+def read_ratings(movie_id: int, db: Session = Depends(get_db)):
+    return crud.get_ratings_for_movie(db, movie_id)
+
+@app.post("/comments/", response_model=schemas.Comment)
+def create_comment(comment: schemas.CommentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return crud.create_comment(db, comment)
+
+@app.get("/movies/{movie_id}/comments/", response_model=List[schemas.Comment])
+def read_comments(movie_id: int, db: Session = Depends(get_db)):
+    return crud.get_comments_for_movie(db, movie_id)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
