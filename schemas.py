@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from typing import List, Optional
 
 
@@ -16,15 +16,16 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Movie Schemas
 
 
 class MovieBase(BaseModel):
-    title: str
-    description: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MovieCreate(MovieBase):
@@ -36,8 +37,7 @@ class Movie(MovieBase):
     owner_id: int
     owner: User
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MovieUpdate(BaseModel):
@@ -47,22 +47,25 @@ class MovieUpdate(BaseModel):
 # Rating Schemas
 
 
-class RatingBase(BaseModel):
-    stars: int = Field(..., ge=1, le=5)
+class RatingCreate(BaseModel):
+    stars: int
     comment: Optional[str] = None
-
-
-class RatingCreate(RatingBase):
-    pass
-
-
-class Rating(RatingBase):
-    id: int
     movie_id: int
-    movie: Movie
 
-    class Config:
-        orm_mode = True
+    @field_validator('stars')
+    def validate_stars(cls, v):
+        if not (0 <= v <= 5):
+            raise ValueError('Stars must be between 0 and 5')
+        return v
+
+class Rating(BaseModel):
+    id: int
+    stars: int
+    comment: Optional[str] = None
+    movie_id: int
+    user_id: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 # Comment Schemas
 
@@ -78,13 +81,11 @@ class CommentCreate(CommentBase):
 class Comment(CommentBase):
     id: int
     movie_id: int
-    movie: Movie
     parent_comment_id: Optional[int] = None
-    children: List['Comment'] = []
+    children: Optional[List['Comment']] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # This is necessary to handle the nested Comment serialization properly
-Comment.update_forward_refs()
+Comment.model_rebuild()

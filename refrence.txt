@@ -1,0 +1,174 @@
+# Quick Reference for Movie Rating and Commenting System
+
+
+## User Authentication
+
+### User Registration
+**Endpoint:** POST /signup
+**Description:** Register a new user.
+**Request Body:**
+{
+    "username": "user1",
+    "full_name": "full name",
+    "email": "user1@example.com",
+    "password": "password123"
+}
+**Response:**
+{
+    "id": 1,
+    "username": "user1",
+    "full_name": "full name",
+    "email": "user1@example.com"
+}
+
+### User Login
+**Endpoint:** POST /login
+**Description:** Log in a user and generate a JWT token.
+**Request Body:**
+{
+    "username": "user1",
+    "password": "password123"
+}
+**Response:**
+{
+    "access_token": "JWT_TOKEN",
+    "token_type": "bearer"
+}
+
+## JWT Token Generation
+-
+
+## Movie Management
+
+### 3. List Movies (Authenticated Users Only)
+**Endpoint:** POST /movies/
+**Description:** List a new movie.
+**Request Body:**
+{
+    "title": "Movie Title",
+    "description": "Movie Description"
+}
+**Response:**
+{
+    "id": 1,
+    "title": "Movie Title",
+    "description": "Movie Description",
+    "owner_id": 1
+}
+
+### 4. View All Movies (Public Access)
+**Endpoint:** GET /movies/
+**Description:** View all listed movies.
+**Response:**
+[
+    {
+        "id": 1,
+        "title": "Movie Title",
+        "description": "Movie Description",
+        "owner_id": 1
+    },
+    ...
+]
+
+### 5. Edit a Movie (Only by the User Who Listed It)
+**Endpoint:** PUT /movies/{movie_id}/
+**Description:** Edit a movie.
+**Request Body:**
+{
+    "title": "New Movie Title",
+    "description": "New Movie Description"
+}
+**Response:**
+{
+    "id": 1,
+    "title": "New Movie Title",
+    "description": "New Movie Description",
+    "owner_id": 1
+}
+
+### 6. Delete a Movie (Only by the User Who Listed It)
+**Endpoint:** DELETE /movies/{movie_id}/
+**Description:** Delete a movie.
+**Response:**
+{
+    "message": "Movie deleted successfully"
+}
+
+## Movie Rating
+
+### 7. Rate a Movie (Authenticated Access)
+**Endpoint:** POST /movies/{movie_id}/rate/
+**Description:** Rate a movie.
+**Request Body:**
+{
+    "stars": 5
+}
+**Response:**
+{
+    "id": 1,
+    "stars": 5,
+    "movie_id": 1,
+    "user_id": 1
+}
+
+### 8. Get Ratings for a Movie
+**Endpoint:** GET /movies/{movie_id}/ratings/
+**Description:** Get ratings for a movie.
+**Response:**
+[
+    {
+        "id": 1,
+        "stars": 5,
+        "movie_id": 1,
+        "user_id": 1
+    },
+    ...
+]
+
+## Comments
+
+### 9. Add a Comment to a Movie (Authenticated Access)
+**Endpoint:** POST /movies/{movie_id}/comments/
+**Description:** Add a comment to a movie.
+**Request Body:**
+{
+    "text": "Great movie!"
+}
+**Response:**
+{
+    "id": 1,
+    "text": "Great movie!",
+    "movie_id": 1,
+    "user_id": 1
+}
+
+### 10. View Comments for a Movie
+**Endpoint:** GET /movies/{movie_id}/comments/
+**Description:** View comments for a movie.
+**Response:**
+[
+    {
+        "id": 1,
+        "text": "Great movie!",
+        "movie_id": 1,
+        "user_id": 1
+    },
+    ...
+]
+
+## Environment Variables (.env)
+
+DB_URL= "postgresql://postgres:yourpassword@localhost/capstone_db"
+SECRET_KEY= "your_secret_key"
+ALGORITHM= "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES= 30
+
+## Notes:
+1. Ensure you replace placeholders like `yourpassword`, `your_secret_key` with actual values.
+2. Ensure `.env` is not included in version control.
+
+## Commands
+
+### Running the Application
+```bash
+uvicorn main:app --reload

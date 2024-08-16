@@ -1,0 +1,48 @@
+Features:
+
+1. User Authentication:
+   - User registration
+   - User login
+   - JWT token generation
+
+2. Movie Listing:
+   - List a movie (authenticated users only)
+   - View all movies (public access)
+   - Edit a movie (only by the user who listed it)
+   - Delete a movie (only by the user who listed it)
+
+3. Movie Rating:
+   - Rate a movie (authenticated users)
+   - Get ratings for a movie
+
+4. Comments:
+   - Add a comment to a movie (authenticated users)
+   - View comments for a movie (public access)
+   - Add a comment to a comment (nested comments) (authenticated users)
+
+Entities:
+
+User:
+- id (integer, primary key)
+- username (string)
+- hashed_password (string)
+
+Movie:
+- id (integer, primary key)
+- title (string)
+- description (string)
+- release_year (integer)
+- user_id (integer, foreign key to User)
+
+Rating:
+- id (integer, primary key)
+- score (integer)
+- movie_id (integer, foreign key to Movie)
+- user_id (integer, foreign key to User)
+
+Comment:
+- id (integer, primary key)
+- text (string)
+- movie_id (integer, foreign key to Movie)
+- user_id (integer, foreign key to User)
+- parent_comment_id (integer, nullable, self-referential foreign key to Comment)
