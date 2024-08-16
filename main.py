@@ -43,6 +43,9 @@ async def generic_exception_handler(request: Request, exc: Exception):
         content={"detail": "An unexpected error occurred. Please try again later."},
     )
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to my FastAPI app!"}
 
 # CREATE USERS ENDPOINT
 @app.post("/signup", response_model=schemas.User)
